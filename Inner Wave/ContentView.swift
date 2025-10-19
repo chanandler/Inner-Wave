@@ -36,7 +36,8 @@ struct ContentView: View {
             }
             .sheet(isPresented: $showPracticePicker) {
                 PracticePickerView()
-                    .presentationDetents([.medium, .large])
+                    .presentationDetents([.large, .fraction(0.9), .medium])
+                    .presentationDragIndicator(.visible)
             }
         }
         .environment(SettingsStore())
