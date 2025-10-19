@@ -35,16 +35,12 @@ struct ContentView: View {
                 PracticePickerView()
             }
             .sheet(isPresented: $showPracticePicker) {
-                ZStack {
-                    // Background mandala that remains visible behind the sheet content
-                    BreathingMandalaBackground()
-                        .ignoresSafeArea()
-                    PracticePickerView()
-                        .presentationDetents([.medium, .large])
-                }
+                PracticePickerView()
+                    .presentationDetents([.medium, .large])
             }
         }
         .environment(SettingsStore())
+        .environment(BreathingRhythm())
     }
 }
 
@@ -77,6 +73,7 @@ private struct PracticePickerView: View {
 private struct MandalaView: View {
     @Environment(SettingsStore.self) private var settings
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(BreathingRhythm.self) private var rhythm
     
     @State private var rotate = false
     @State private var breathe = false
@@ -195,7 +192,7 @@ private struct MandalaView: View {
             .rotationEffect(.degrees(rotate ? 360 : 0))
             .animation(.linear(duration: 30).repeatForever(autoreverses: false), value: rotate)
             .scaleEffect(breathe ? 1.03 : 0.97)
-            .animation(.easeInOut(duration: 4).repeatForever(autoreverses: true), value: breathe)
+            .animation(.easeInOut(duration: rhythm.isRunning ? max(0.5, rhythm.currentDuration) : 4).repeatForever(autoreverses: true), value: breathe)
             .onAppear { rotate = true; breathe = true }
 
             // Foreground glass ring
@@ -204,22 +201,6 @@ private struct MandalaView: View {
         }
         .contentShape(Rectangle())
         .shadow(color: .black.opacity(0.15), radius: 18, x: 0, y: 10)
-    }
-}
-
-private struct BreathingMandalaBackground: View {
-    @State private var breathe = false
-
-    var body: some View {
-        VStack {
-            MandalaView()
-                .frame(width: 360, height: 360)
-                .scaleEffect(breathe ? 1.04 : 0.96)
-                .animation(.easeInOut(duration: 4).repeatForever(autoreverses: true), value: breathe)
-                .offset(y: -140)
-                .onAppear { breathe = true }
-            Spacer()
-        }
     }
 }
 

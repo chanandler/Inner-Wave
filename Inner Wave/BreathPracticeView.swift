@@ -20,6 +20,9 @@ struct BreathPracticeView: View {
     let model: BreathPracticeModel
 
     @Environment(SettingsStore.self) private var settings
+    @Environment(BreathingRhythm.self) private var rhythm
+    @Environment(\.verticalSizeClass) private var vClass
+    @Environment(\.horizontalSizeClass) private var hClass
 
     @State private var currentIndex: Int = 0
     @State private var remaining: TimeInterval = 0
@@ -47,39 +50,55 @@ struct BreathPracticeView: View {
             Spacer(minLength: 20)
 
             // Breathing pulse visual
-            ZStack {
-                Circle()
-                    .fill(.ultraThinMaterial)
-                    .frame(width: 220, height: 220)
-                    .scaleEffect(pulse ? 1.0 : 0.85)
-                    .animation(running ? .easeInOut(duration: adjustedDuration(for: currentStep)).repeatForever(autoreverses: true) : .default, value: pulse)
-                    .onChange(of: running) { oldValue, newValue in
-                        if newValue { pulse.toggle() } else { pulse = false }
-                    }
-                    .onChange(of: currentIndex) {
-                        if running {
-                            pulse.toggle()
-                        }
-                    }
+            GeometryReader { proxy in
+                // Compute an adaptive diameter that leaves room for title/intro at top and controls at bottom
+                let totalH = proxy.size.height
+                let reservedTop: CGFloat = 140 // approx space for title + intro
+                let reservedBottom: CGFloat = 120 // approx space for controls
+                let usable = max(180, totalH - reservedTop - reservedBottom)
+                let maxCap: CGFloat = (vClass == .compact ? 320 : 420)
+                let baseDiameter = min(usable, maxCap)
 
-                VStack(spacing: 6) {
-                    Text(currentStep.title)
-                        .font(.title2).bold()
-                        .multilineTextAlignment(.center)
-                    if let s = currentStep.subtitle, !s.isEmpty {
-                        Text(s)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                ZStack {
+                    Circle()
+                        .fill((pulse ? Color.red : Color.green).opacity(0.35))
+                        .overlay(
+                            Circle().stroke((pulse ? Color.red : Color.green).opacity(0.8), lineWidth: 3)
+                        )
+                        .frame(width: baseDiameter, height: baseDiameter)
+                        .scaleEffect(pulse ? 1.1 : 0.9)
+                        .animation(running ? .easeInOut(duration: adjustedDuration(for: currentStep)).repeatForever(autoreverses: true) : .default, value: pulse)
+                        .onChange(of: running) { oldValue, newValue in
+                            if newValue { pulse.toggle() } else { pulse = false }
+                        }
+                        .onChange(of: currentIndex) {
+                            if running { pulse.toggle() }
+                        }
+
+                    VStack(spacing: 6) {
+                        Text(currentStep.title)
+                            .font(.title2).bold()
                             .multilineTextAlignment(.center)
-                            .padding(.horizontal)
+                            .frame(maxWidth: .infinity)
+                        if let s = currentStep.subtitle, !s.isEmpty {
+                            Text(s)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .padding(.horizontal)
+                                .frame(maxWidth: .infinity)
+                        }
+                        Text(timeString(remaining))
+                            .monospacedDigit()
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 4)
                     }
-                    Text(timeString(remaining))
-                        .monospacedDigit()
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.top, 4)
+                    .frame(width: baseDiameter)
+                    .padding()
                 }
-                .padding()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
 
             Spacer()
@@ -118,7 +137,10 @@ struct BreathPracticeView: View {
             startStep(index: 0)
             prepareHaptics()
         }
-        .onDisappear { stopTimer() }
+        .onDisappear {
+            stopTimer()
+            rhythm.isRunning = false
+        }
         .toolbar { ToolbarItem(placement: .topBarTrailing) { resetButton } }
     }
 
@@ -133,6 +155,7 @@ struct BreathPracticeView: View {
         stopTimer()
         currentIndex = index
         remaining = adjustedDuration(for: currentStep)
+        rhythm.currentDuration = remaining
         if running { startTimer() }
         playCue()
     }
@@ -141,8 +164,14 @@ struct BreathPracticeView: View {
         running.toggle()
         if running {
             startTimer()
-            pulse.toggle()
+            // Nudge the pulse to ensure animation begins visibly
+            pulse = false
+            DispatchQueue.main.async {
+                pulse = true
+            }
+            rhythm.isRunning = true
         } else {
+            rhythm.isRunning = false
             stopTimer()
             pulse = false
         }
@@ -159,6 +188,7 @@ struct BreathPracticeView: View {
     private func stopTimer() {
         timer?.invalidate()
         timer = nil
+        rhythm.isRunning = false
     }
 
     private func tick() {
@@ -186,6 +216,7 @@ struct BreathPracticeView: View {
         } else {
             running = false
             stopTimer()
+            rhythm.isRunning = false
         }
     }
 
@@ -215,6 +246,13 @@ struct BreathPracticeView: View {
             return 4.0
         }
         return step.duration
+    }
+
+    private func colorForCurrentStep() -> Color {
+        let title = currentStep.title.lowercased()
+        if title.contains("inhale") { return .red }
+        if title.contains("exhale") { return .green }
+        return .gray
     }
 
     private func playCue() {
