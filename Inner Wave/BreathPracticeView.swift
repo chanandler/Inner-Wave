@@ -52,11 +52,11 @@ struct BreathPracticeView: View {
                     .fill(.ultraThinMaterial)
                     .frame(width: 220, height: 220)
                     .scaleEffect(pulse ? 1.0 : 0.85)
-                    .animation(running ? .easeInOut(duration: currentStep.duration).repeatForever(autoreverses: true) : .default, value: pulse)
-                    .onChange(of: running) { _, newValue in
+                    .animation(running ? .easeInOut(duration: adjustedDuration(for: currentStep)).repeatForever(autoreverses: true) : .default, value: pulse)
+                    .onChange(of: running) { oldValue, newValue in
                         if newValue { pulse.toggle() } else { pulse = false }
                     }
-                    .onChange(of: currentIndex) { _ in
+                    .onChange(of: currentIndex) {
                         if running {
                             pulse.toggle()
                         }
@@ -200,7 +200,7 @@ struct BreathPracticeView: View {
     }
 
     private func adjustedDuration(for step: BreathStep) -> TimeInterval {
-        // Map canonical durations (4s inhale/exhale segments, 2s pauses) to settings
+        // Map canonical durations (4s inhale/exhale/mantra/chakra segments, 2s pauses) to fixed or settings durations
         if step.title.localizedCaseInsensitiveContains("pause") { return settings.pauseDuration }
         if step.title.localizedCaseInsensitiveContains("Inhale") ||
             step.title.localizedCaseInsensitiveContains("Exhale") ||
@@ -212,7 +212,7 @@ struct BreathPracticeView: View {
             step.title.localizedCaseInsensitiveContains("Throat") ||
             step.title.localizedCaseInsensitiveContains("Third Eye") ||
             step.title.localizedCaseInsensitiveContains("Crown") {
-            return settings.stepDuration
+            return 4.0
         }
         return step.duration
     }

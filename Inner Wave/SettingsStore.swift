@@ -1,23 +1,78 @@
 import SwiftUI
 import AVFoundation
 
+// Keys for persistence
+private enum SettingsKeys {
+    static let stepDuration = "stepDuration"
+    static let pauseDuration = "pauseDuration"
+    static let loopPractice = "loopPractice"
+    static let roundsPerRest = "roundsPerRest"
+    static let soundCuesEnabled = "soundCuesEnabled"
+    static let hapticsEnabled = "hapticsEnabled"
+    static let mandalaTheme = "mandalaTheme"
+}
+
+enum MandalaTheme: String, CaseIterable, Identifiable, Sendable {
+    case chakra
+    case coolGlow
+    case warmSunset
+    case monochrome
+
+    var id: String { rawValue }
+    var displayName: String {
+        switch self {
+        case .chakra: return "Chakra Gradient"
+        case .coolGlow: return "Cool Glow"
+        case .warmSunset: return "Warm Sunset"
+        case .monochrome: return "Monochrome"
+        }
+    }
+}
+
 @Observable
 final class SettingsStore {
-    @AppStorage("stepDuration") var stepDuration: Double = 4 // default seconds per step unit
-    @AppStorage("pauseDuration") var pauseDuration: Double = 2
-    @AppStorage("loopPractice") var loopPractice: Bool = true
-    @AppStorage("roundsPerRest") var roundsPerRest: Int = 3
-    @AppStorage("soundCuesEnabled") var soundCuesEnabled: Bool = true
-    @AppStorage("hapticsEnabled") var hapticsEnabled: Bool = true
+    // Plain stored properties observed by Swift's Observation framework
+    var stepDuration: Double = 4 { didSet { save() } }
+    var pauseDuration: Double = 2 { didSet { save() } }
+    var loopPractice: Bool = true { didSet { save() } }
+    var roundsPerRest: Int = 3 { didSet { save() } }
+    var soundCuesEnabled: Bool = true { didSet { save() } }
+    var hapticsEnabled: Bool = true { didSet { save() } }
+    var mandalaTheme: MandalaTheme = .chakra { didSet { save() } }
+
+    init() { load() }
+
+    private func load() {
+        let d = UserDefaults.standard
+        if d.object(forKey: SettingsKeys.stepDuration) != nil { stepDuration = d.double(forKey: SettingsKeys.stepDuration) }
+        if d.object(forKey: SettingsKeys.pauseDuration) != nil { pauseDuration = d.double(forKey: SettingsKeys.pauseDuration) }
+        if d.object(forKey: SettingsKeys.loopPractice) != nil { loopPractice = d.bool(forKey: SettingsKeys.loopPractice) }
+        if d.object(forKey: SettingsKeys.roundsPerRest) != nil { roundsPerRest = d.integer(forKey: SettingsKeys.roundsPerRest) }
+        if d.object(forKey: SettingsKeys.soundCuesEnabled) != nil { soundCuesEnabled = d.bool(forKey: SettingsKeys.soundCuesEnabled) }
+        if d.object(forKey: SettingsKeys.hapticsEnabled) != nil { hapticsEnabled = d.bool(forKey: SettingsKeys.hapticsEnabled) }
+        if let raw = d.string(forKey: SettingsKeys.mandalaTheme), let t = MandalaTheme(rawValue: raw) { mandalaTheme = t }
+    }
+
+    private func save() {
+        let d = UserDefaults.standard
+        d.set(stepDuration, forKey: SettingsKeys.stepDuration)
+        d.set(pauseDuration, forKey: SettingsKeys.pauseDuration)
+        d.set(loopPractice, forKey: SettingsKeys.loopPractice)
+        d.set(roundsPerRest, forKey: SettingsKeys.roundsPerRest)
+        d.set(soundCuesEnabled, forKey: SettingsKeys.soundCuesEnabled)
+        d.set(hapticsEnabled, forKey: SettingsKeys.hapticsEnabled)
+        d.set(mandalaTheme.rawValue, forKey: SettingsKeys.mandalaTheme)
+    }
 }
 
 struct SettingsView: View {
     @Environment(SettingsStore.self) private var settings
 
     var body: some View {
+        @Bindable var settings = settings
         Form {
             Section("Timing") {
-                Stepper(value: bindingDouble($settings.stepDuration), in: 2...10, step: 1) {
+                Stepper(value: $settings.stepDuration, in: 2...10, step: 1) {
                     HStack {
                         Text("Step duration")
                         Spacer()
@@ -25,7 +80,7 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                Stepper(value: bindingDouble($settings.pauseDuration), in: 0...6, step: 1) {
+                Stepper(value: $settings.pauseDuration, in: 0...6, step: 1) {
                     HStack {
                         Text("Pause duration")
                         Spacer()
@@ -47,17 +102,20 @@ struct SettingsView: View {
                 }
             }
 
+            Section("Appearance") {
+                Picker("Mandala theme", selection: $settings.mandalaTheme) {
+                    ForEach(MandalaTheme.allCases) { theme in
+                        Text(theme.displayName).tag(theme)
+                    }
+                }
+            }
+
             Section("Cues") {
                 Toggle("Sound cues", isOn: $settings.soundCuesEnabled)
                 Toggle("Haptics", isOn: $settings.hapticsEnabled)
             }
         }
         .navigationTitle("Settings")
-    }
-
-    // Helper to satisfy Stepper with Double in a nicer API
-    private func bindingDouble(_ appStorage: AppStorage<Double>) -> Binding<Double> {
-        Binding(get: { appStorage.wrappedValue }, set: { appStorage.wrappedValue = $0 })
     }
 }
 
@@ -66,8 +124,6 @@ enum SoundCuePlayer {
     static var player: AVAudioPlayer?
     static func playBell(enabled: Bool) {
         guard enabled else { return }
-        // Use system sound if bundled asset not available; generate a short tone.
-        // Here we synthesize a very short silent audio if resource missing to avoid crash.
         if let url = Bundle.main.url(forResource: "bell", withExtension: "wav") {
             do {
                 player = try AVAudioPlayer(contentsOf: url)
