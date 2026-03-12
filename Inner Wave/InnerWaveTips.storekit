@@ -1,0 +1,69 @@
+{
+  "identifier" : "com.clintyarwood.innerwave.tips",
+  "nonConsumableProducts" : [
+
+  ],
+  "consumableProducts" : [
+    {
+      "displayPrice" : "0.99",
+      "familyShareable" : false,
+      "internalID" : "1001",
+      "localizations" : [
+        {
+          "description" : "A small tip to say thanks.",
+          "displayName" : "Buy me a coffee",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "clintyarwood.innerwave.tip.small",
+      "referenceName" : "Small Tip",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "1002",
+      "localizations" : [
+        {
+          "description" : "A generous tip to keep development going.",
+          "displayName" : "Buy me lunch",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "clintyarwood.innerwave.tip.med",
+      "referenceName" : "Medium Tip",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "1003",
+      "localizations" : [
+        {
+          "description" : "An extra generous tip. You are amazing!",
+          "displayName" : "Buy me dinner",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "clintyarwood.innerwave.tip.large",
+      "referenceName" : "Large Tip",
+      "type" : "Consumable"
+    }
+  ],
+  "autoRenewableSubscriptions" : [
+
+  ],
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "settings" : {
+    "_applicationUsername" : "",
+    "_lastSynchronizedDate" : "2026-03-12T00:00:00Z",
+    "_storefront" : "GBR",
+    "_storeKitVersion" : "2"
+  },
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

@@ -31,18 +31,21 @@ enum MandalaTheme: String, CaseIterable, Identifiable, Sendable {
 
 @Observable
 final class SettingsStore {
-    // Plain stored properties observed by Swift's Observation framework
-    var stepDuration: Double = 4 { didSet { save() } }
-    var pauseDuration: Double = 2 { didSet { save() } }
-    var loopPractice: Bool = true { didSet { save() } }
-    var roundsPerRest: Int = 3 { didSet { save() } }
-    var soundCuesEnabled: Bool = true { didSet { save() } }
-    var hapticsEnabled: Bool = true { didSet { save() } }
-    var mandalaTheme: MandalaTheme = .chakra { didSet { save() } }
+    private var isLoading = false
+
+    var stepDuration: Double = 4 { didSet { if !isLoading { save() } } }
+    var pauseDuration: Double = 2 { didSet { if !isLoading { save() } } }
+    var loopPractice: Bool = true { didSet { if !isLoading { save() } } }
+    var roundsPerRest: Int = 3 { didSet { if !isLoading { save() } } }
+    var soundCuesEnabled: Bool = true { didSet { if !isLoading { save() } } }
+    var hapticsEnabled: Bool = true { didSet { if !isLoading { save() } } }
+    var mandalaTheme: MandalaTheme = .chakra { didSet { if !isLoading { save() } } }
 
     init() { load() }
 
     private func load() {
+        isLoading = true
+        defer { isLoading = false }
         let d = UserDefaults.standard
         if d.object(forKey: SettingsKeys.stepDuration) != nil { stepDuration = d.double(forKey: SettingsKeys.stepDuration) }
         if d.object(forKey: SettingsKeys.pauseDuration) != nil { pauseDuration = d.double(forKey: SettingsKeys.pauseDuration) }
@@ -113,6 +116,15 @@ struct SettingsView: View {
             Section("Cues") {
                 Toggle("Sound cues", isOn: $settings.soundCuesEnabled)
                 Toggle("Haptics", isOn: $settings.hapticsEnabled)
+            }
+
+            Section("Support") {
+                NavigationLink {
+                    TipJarView()
+                } label: {
+                    Label("Tip Jar", systemImage: "heart.fill")
+                        .foregroundStyle(.pink)
+                }
             }
         }
         .navigationTitle("Settings")
