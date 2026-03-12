@@ -13,26 +13,22 @@ final class TipStore {
         case failed(String)
     }
 
-    private(set) var products: [Product] = []
+    private(set) var product: Product? = nil
     var purchaseState: PurchaseState = .idle
 
-    private let productIDs: [String] = [
-        "clintyarwood.innerwave.tip.small",
-        "clintyarwood.innerwave.tip.med",
-        "clintyarwood.innerwave.tip.large"
-    ]
+    private let productID = "interweave.tip.coffee"
 
-    func loadProducts() async {
+    func loadProduct() async {
         do {
-            let fetched = try await Product.products(for: Set(productIDs))
-            // Sort by price ascending so they always appear small → large
-            products = fetched.sorted { $0.price < $1.price }
+            let fetched = try await Product.products(for: [productID])
+            product = fetched.first
         } catch {
-            products = []
+            product = nil
         }
     }
 
-    func purchase(_ product: Product) async {
+    func purchase() async {
+        guard let product else { return }
         purchaseState = .purchasing
         do {
             let result = try await product.purchase()
@@ -40,7 +36,6 @@ final class TipStore {
             case .success(let verification):
                 switch verification {
                 case .verified(let transaction):
-                    // Consumable tip — finish immediately, no entitlement to track
                     await transaction.finish()
                     purchaseState = .success
                 case .unverified:
@@ -66,17 +61,79 @@ struct TipJarView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 28) {
-                headerSection
-                    .padding(.top, 8)
+                // Header
+                VStack(spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .fill(.pink.opacity(0.12))
+                            .frame(width: 80, height: 80)
+                        Image(systemName: "cup.and.saucer.fill")
+                            .font(.system(size: 36))
+                            .foregroundStyle(.pink.gradient)
+                    }
 
-                if store.products.isEmpty {
+                    Text("Buy Me a Coffee")
+                        .font(.title2).bold()
+
+                    Text("Inner Wave is made with love and care. If it has brought calm to your day, consider buying me a coffee to help keep development going.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.top, 8)
+
+                // Button
+                if let product = store.product {
+                    Button {
+                        Task { await store.purchase() }
+                    } label: {
+                        HStack(spacing: 14) {
+                            Image(systemName: "cup.and.saucer.fill")
+                                .font(.title3)
+                                .foregroundStyle(.pink)
+                                .frame(width: 32)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(product.displayName)
+                                    .font(.headline)
+                                    .foregroundStyle(.primary)
+                                Text(product.description)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(2)
+                            }
+
+                            Spacer()
+
+                            if store.purchaseState == .purchasing {
+                                ProgressView()
+                                    .frame(width: 60)
+                            } else {
+                                Text(product.displayPrice)
+                                    .font(.subheadline).bold()
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 8)
+                                    .background(.pink, in: Capsule())
+                            }
+                        }
+                        .padding(14)
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .shadow(color: .black.opacity(0.06), radius: 6, x: 0, y: 3)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(store.purchaseState == .purchasing)
+                } else {
                     ProgressView("Loading…")
                         .padding(.top, 40)
-                } else {
-                    tipButtonsSection
                 }
 
-                footerNote
+                // Footer
+                Text("Tips are one-time purchases and are non-refundable. Thank you for your generosity.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
             }
             .padding()
         }
@@ -89,7 +146,7 @@ struct TipJarView: View {
             }
         }
         .animation(.spring(response: 0.4, dampingFraction: 0.75), value: showThankYou)
-        .task { await store.loadProducts() }
+        .task { await store.loadProduct() }
         .onChange(of: store.purchaseState) { _, newValue in
             if newValue == .success {
                 showThankYou = true
@@ -100,93 +157,6 @@ struct TipJarView: View {
                 }
             }
         }
-    }
-
-    // MARK: Header
-
-    private var headerSection: some View {
-        VStack(spacing: 14) {
-            ZStack {
-                Circle()
-                    .fill(.pink.opacity(0.12))
-                    .frame(width: 80, height: 80)
-                Image(systemName: "heart.fill")
-                    .font(.system(size: 36))
-                    .foregroundStyle(.pink.gradient)
-            }
-
-            Text("Support Inner Wave")
-                .font(.title2).bold()
-
-            Text("Inner Wave is made with love and care. If it has brought calm to your day, consider leaving a small tip to help keep development going.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
-    }
-
-    // MARK: Tip buttons
-
-    private var tipButtonsSection: some View {
-        VStack(spacing: 12) {
-            ForEach(store.products) { product in
-                tipButton(for: product)
-            }
-        }
-    }
-
-    private func tipButton(for product: Product) -> some View {
-        Button {
-            Task { await store.purchase(product) }
-        } label: {
-            HStack(spacing: 14) {
-                Image(systemName: iconForProduct(product))
-                    .font(.title3)
-                    .foregroundStyle(.pink)
-                    .frame(width: 32)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(product.displayName)
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                    Text(product.description)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-
-                Spacer()
-
-                Group {
-                    if store.purchaseState == .purchasing {
-                        ProgressView()
-                            .frame(width: 60)
-                    } else {
-                        Text(product.displayPrice)
-                            .font(.subheadline).bold()
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(.pink, in: Capsule())
-                    }
-                }
-            }
-            .padding(14)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .shadow(color: .black.opacity(0.06), radius: 6, x: 0, y: 3)
-        }
-        .buttonStyle(.plain)
-        .disabled(store.purchaseState == .purchasing)
-    }
-
-    // MARK: Footer
-
-    private var footerNote: some View {
-        Text("Tips are one-time purchases and are non-refundable. Thank you for your generosity.")
-            .font(.caption2)
-            .foregroundStyle(.tertiary)
-            .multilineTextAlignment(.center)
-            .padding(.horizontal)
     }
 
     // MARK: Thank-you overlay
@@ -215,17 +185,6 @@ struct TipJarView: View {
         .onTapGesture {
             showThankYou = false
             store.purchaseState = .idle
-        }
-    }
-
-    // MARK: Helpers
-
-    private func iconForProduct(_ product: Product) -> String {
-        switch product.id {
-        case "clintyarwood.innerwave.tip.small":  return "heart"
-        case "clintyarwood.innerwave.tip.med":    return "heart.fill"
-        case "clintyarwood.innerwave.tip.large":  return "heart.circle.fill"
-        default:                                   return "heart"
         }
     }
 }

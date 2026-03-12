@@ -1,6 +1,15 @@
 {
-  "identifier" : "com.clintyarwood.innerwave.tips",
-  "nonConsumableProducts" : [
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "autoRenewableSubscriptions" : [
 
   ],
   "consumableProducts" : [
@@ -15,55 +24,77 @@
           "locale" : "en_US"
         }
       ],
-      "productID" : "clintyarwood.innerwave.tip.small",
-      "referenceName" : "Small Tip",
-      "type" : "Consumable"
-    },
-    {
-      "displayPrice" : "2.99",
-      "familyShareable" : false,
-      "internalID" : "1002",
-      "localizations" : [
-        {
-          "description" : "A generous tip to keep development going.",
-          "displayName" : "Buy me lunch",
-          "locale" : "en_US"
-        }
-      ],
-      "productID" : "clintyarwood.innerwave.tip.med",
-      "referenceName" : "Medium Tip",
-      "type" : "Consumable"
-    },
-    {
-      "displayPrice" : "4.99",
-      "familyShareable" : false,
-      "internalID" : "1003",
-      "localizations" : [
-        {
-          "description" : "An extra generous tip. You are amazing!",
-          "displayName" : "Buy me dinner",
-          "locale" : "en_US"
-        }
-      ],
-      "productID" : "clintyarwood.innerwave.tip.large",
-      "referenceName" : "Large Tip",
+      "productID" : "interweave.tip.coffee",
+      "referenceName" : "Buy me a coffee",
       "type" : "Consumable"
     }
   ],
-  "autoRenewableSubscriptions" : [
+  "identifier" : "com.clintyarwood.innerwave.tips",
+  "nonConsumableProducts" : [
 
   ],
   "nonRenewingSubscriptions" : [
 
   ],
+  "products" : [
+
+  ],
   "settings" : {
     "_applicationUsername" : "",
-    "_lastSynchronizedDate" : "2026-03-12T00:00:00Z",
+    "_askToBuyEnabled" : false,
+    "_billingGracePeriodEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_disableDialogs" : false,
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_renewalBillingIssuesEnabled" : false,
     "_storefront" : "GBR",
-    "_storeKitVersion" : "2"
+    "_storeKitErrors" : [
+      {
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "enabled" : false,
+        "name" : "Refund Request Sheet"
+      },
+      {
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      }
+    ],
+    "_storeKitVersion" : "2",
+    "_timeRate" : 0
   },
+  "subscriptionGroups" : [
+
+  ],
   "version" : {
-    "major" : 3,
+    "major" : 4,
     "minor" : 0
   }
 }
